@@ -8,13 +8,27 @@ import { RankingView } from './components/RankingView';
 import { AdminPanel } from './components/AdminPanel';
 import { HowToPlayModal } from './components/HowToPlayModal';
 import { VictoryModal } from './components/VictoryModal';
+import { DisplayView } from './components/DisplayView';
 import { RoomState, Team } from './types/game';
 import { api } from './services/api';
 
 export default function App() {
-  // Código da sala (permite URL query ?room=CODIGO)
+  const [isDisplayMode, setIsDisplayMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const hasParam = params.get('mode') === 'display' || params.get('display') === 'true';
+      const hasPath = window.location.pathname.startsWith('/display');
+      return hasParam || hasPath;
+    }
+    return false;
+  });
+
+  // Código da sala (permite URL query ?room=CODIGO ou path /display/CODIGO)
   const [roomCode, setRoomCode] = useState<string>(() => {
     if (typeof window !== 'undefined') {
+      const match = window.location.pathname.match(/\/display\/([A-Za-z0-9_-]+)/);
+      if (match && match[1]) return match[1].toUpperCase();
+
       const params = new URLSearchParams(window.location.search);
       const queryRoom = params.get('room');
       if (queryRoom) return queryRoom.toUpperCase();
@@ -144,7 +158,9 @@ export default function App() {
           SENAR
         </div>
         <h2 className="text-xl font-bold tracking-tight">DESAFIO SENAR 2030</h2>
-        <p className="text-xs text-emerald-300/80 mt-1">Conectando aos servidores de Rondônia...</p>
+        <p className="text-xs text-emerald-300/80 mt-1">
+          {isDisplayMode ? 'Iniciando Modo Telão Full HD...' : 'Conectando aos servidores de Rondônia...'}
+        </p>
       </div>
     );
   }
@@ -166,6 +182,25 @@ export default function App() {
     );
   }
 
+  // Renderização Dedicada do Modo Telão (1080p 16:9)
+  if (isDisplayMode) {
+    return (
+      <DisplayView
+        room={room}
+        onExitDisplay={() => {
+          setIsDisplayMode(false);
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('mode');
+            url.searchParams.delete('display');
+            const newPath = url.pathname.startsWith('/display') ? '/' : url.pathname;
+            window.history.pushState({}, '', newPath + (url.search ? url.search : ''));
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#061710] via-[#092218] to-[#04100b] text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-black">
       {/* Header Institucional Superior */}
@@ -175,6 +210,7 @@ export default function App() {
         onOpenHowToPlay={() => setShowHowToPlay(true)}
         onOpenRanking={() => setShowRanking(true)}
         onOpenAdmin={() => setShowAdmin(true)}
+        onOpenDisplay={() => setIsDisplayMode(true)}
       />
 
       {/* Main Viewport baseado no estado da máquina de estados do jogo */}

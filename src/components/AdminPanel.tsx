@@ -19,11 +19,13 @@ import {
   Plus,
   UserPlus,
   Crown,
-  Sparkles
+  Sparkles,
+  Tv
 } from 'lucide-react';
 import { RoomState, Question, RoomSettings, Team, Player } from '../types/game';
 import { api } from '../services/api';
 import { SoundSystem } from '../utils/audio';
+import { DisplayControlModal } from './DisplayControlModal';
 
 const AVAILABLE_TEAM_COLORS = [
   '#10b981', // Verde Esmeralda (SENAR)
@@ -53,6 +55,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ room, onClose }) => {
   const [filterRound, setFilterRound] = useState<number>(1);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [actionSuccess, setActionSuccess] = useState('');
+  const [showDisplayControl, setShowDisplayControl] = useState(false);
 
   // Estados para Gestão Completa de Equipes e Participantes
   const [showNewTeamModal, setShowNewTeamModal] = useState(false);
@@ -192,6 +195,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ room, onClose }) => {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowDisplayControl(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-lg shadow-amber-950/40 transition-transform active:scale-95"
+              title="Abrir Central de Transmissão e Modo Telão"
+            >
+              <Tv className="w-4 h-4" />
+              <span>ABRIR MODO TELÃO</span>
+            </button>
             {actionSuccess && (
               <span className="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded border border-emerald-700">
                 {actionSuccess}
@@ -261,6 +272,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ room, onClose }) => {
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'control' && (
             <div className="space-y-6">
+              {/* Banner Central de Transmissão & Modo Telão */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/70 via-emerald-950/80 to-slate-900 border-2 border-amber-500/60 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl shadow-amber-950/20">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500 flex items-center justify-center text-amber-400 shrink-0">
+                    <Tv className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-white tracking-wide">
+                        CENTRAL DO MODO TELÃO & TRANSMISSÃO AO VIVO
+                      </h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+                        1080p Full HD
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-200/80 mt-0.5">
+                      Projeção sincronizada para telões e TVs com timeline das 5 rodadas, quebra-cabeça 25 peças, destaques e pódio.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowDisplayControl(true)}
+                  className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-900/40 transition-transform active:scale-95 shrink-0"
+                >
+                  <Tv className="w-4 h-4" />
+                  <span>GERENCIAR TELÃO & TRANSMISSÃO</span>
+                </button>
+              </div>
+
               {/* Botões de Ação Principal */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <button
@@ -1006,6 +1047,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ room, onClose }) => {
           )}
         </div>
       </motion.div>
+
+      {/* Modal de Controle do Modo Telão */}
+      {showDisplayControl && (
+        <DisplayControlModal
+          room={room}
+          onClose={() => setShowDisplayControl(false)}
+        />
+      )}
     </div>
   );
 };

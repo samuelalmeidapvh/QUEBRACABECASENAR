@@ -99,6 +99,27 @@ export interface RoomState {
   teams: Record<string, Team>;
   activeQuestionIds: string[]; // question IDs for current round
   serverTime: number;
+  presenter?: PresenterState;
+}
+
+export type DisplayViewMode =
+  | 'AUTO'
+  | 'OVERVIEW'
+  | 'OPENING'
+  | 'RANKING'
+  | 'ROUNDS'
+  | 'PUZZLE'
+  | 'HIGHLIGHTS'
+  | 'ROUND_RESULT'
+  | 'FINALE';
+
+export interface PresenterState {
+  viewMode: DisplayViewMode;
+  autoIntervalSeconds: number; // default 15
+  isAutoPlaying: boolean;
+  highlightTeamId?: string;
+  countdownValue?: number | null;
+  countdownStartedAt?: number | null;
 }
 
 export interface LeaderboardEntry {

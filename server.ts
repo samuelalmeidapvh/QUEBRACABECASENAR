@@ -88,6 +88,17 @@ function broadcastRoom(code: string) {
 
 // Higieniza perguntas para que o cliente não veja o gabarito antes da conclusão da rodada
 function sanitizeRoomForClient(room: RoomState): any {
+  if (!room.presenter) {
+    room.presenter = {
+      viewMode: 'AUTO',
+      autoIntervalSeconds: 15,
+      isAutoPlaying: true,
+      highlightTeamId: undefined,
+      countdownValue: null,
+      countdownStartedAt: null
+    };
+  }
+
   const isPlaying = room.status === 'PLAYING_ROUND';
   const activeQuestions = storage.questions
     .filter((q) => room.activeQuestionIds.includes(q.id))
@@ -718,6 +729,79 @@ app.post('/api/rooms/:code/action', (req: Request, res: Response) => {
           }
         }
       }
+      break;
+    }
+
+    case 'SET_PRESENTER_VIEW': {
+      if (!room.presenter) {
+        room.presenter = {
+          viewMode: 'AUTO',
+          autoIntervalSeconds: 15,
+          isAutoPlaying: true,
+          highlightTeamId: undefined,
+          countdownValue: null,
+          countdownStartedAt: null
+        };
+      }
+      if (req.body.viewMode) {
+        room.presenter.viewMode = req.body.viewMode;
+        if (req.body.viewMode !== 'AUTO') {
+          room.presenter.isAutoPlaying = false;
+        }
+      }
+      break;
+    }
+
+    case 'TOGGLE_AUTO_PRESENTATION': {
+      if (!room.presenter) {
+        room.presenter = {
+          viewMode: 'AUTO',
+          autoIntervalSeconds: 15,
+          isAutoPlaying: true,
+          highlightTeamId: undefined,
+          countdownValue: null,
+          countdownStartedAt: null
+        };
+      }
+      room.presenter.isAutoPlaying = Boolean(req.body.isAutoPlaying);
+      if (req.body.autoIntervalSeconds) {
+        room.presenter.autoIntervalSeconds = Number(req.body.autoIntervalSeconds);
+      }
+      if (room.presenter.isAutoPlaying) {
+        room.presenter.viewMode = 'AUTO';
+      }
+      break;
+    }
+
+    case 'HIGHLIGHT_TEAM': {
+      if (!room.presenter) {
+        room.presenter = {
+          viewMode: 'AUTO',
+          autoIntervalSeconds: 15,
+          isAutoPlaying: true,
+          highlightTeamId: undefined,
+          countdownValue: null,
+          countdownStartedAt: null
+        };
+      }
+      room.presenter.highlightTeamId = req.body.targetTeamId || undefined;
+      break;
+    }
+
+    case 'TRIGGER_COUNTDOWN': {
+      if (!room.presenter) {
+        room.presenter = {
+          viewMode: 'AUTO',
+          autoIntervalSeconds: 15,
+          isAutoPlaying: true,
+          highlightTeamId: undefined,
+          countdownValue: null,
+          countdownStartedAt: null
+        };
+      }
+      const count = req.body.countdownValue !== undefined ? req.body.countdownValue : 5;
+      room.presenter.countdownValue = count;
+      room.presenter.countdownStartedAt = Date.now();
       break;
     }
   }

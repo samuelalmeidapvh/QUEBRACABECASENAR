@@ -113,7 +113,14 @@
         "r1_q09",
         "r1_q10"
       ],
-      "serverTime": 1793730078369
+      "serverTime": 1793730078369,
+      "presenter": {
+        "viewMode": "AUTO",
+        "autoIntervalSeconds": 15,
+        "isAutoPlaying": true,
+        "countdownValue": null,
+        "countdownStartedAt": null
+      }
     }
   },
   "questions": [

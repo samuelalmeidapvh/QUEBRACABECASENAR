@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, HelpCircle, Trophy, Shield, Copy, Check, Users } from 'lucide-react';
+import { Volume2, VolumeX, HelpCircle, Trophy, Shield, Copy, Check, Users, Tv } from 'lucide-react';
 import { SoundSystem } from '../utils/audio';
 import { RoomState, Team } from '../types/game';
 
@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenHowToPlay: () => void;
   onOpenRanking: () => void;
   onOpenAdmin: () => void;
+  onOpenDisplay?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,7 +17,8 @@ export const Header: React.FC<HeaderProps> = ({
   myTeam,
   onOpenHowToPlay,
   onOpenRanking,
-  onOpenAdmin
+  onOpenAdmin,
+  onOpenDisplay
 }) => {
   const [muted, setMuted] = useState(SoundSystem.isMuted());
   const [copied, setCopied] = useState(false);
@@ -148,6 +150,17 @@ export const Header: React.FC<HeaderProps> = ({
             <Trophy className="w-4 h-4 text-amber-400" />
             <span className="hidden sm:inline">Ranking</span>
           </button>
+
+          {onOpenDisplay && (
+            <button
+              onClick={onOpenDisplay}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-semibold transition-colors shadow-sm"
+              title="Abrir Modo Telão / Transmissão ao Vivo"
+            >
+              <Tv className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Telão</span>
+            </button>
+          )}
 
           <button
             onClick={onOpenAdmin}
