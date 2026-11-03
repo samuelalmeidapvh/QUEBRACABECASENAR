@@ -464,7 +464,17 @@ app.post('/api/rooms/:code/puzzle/place', (req: Request, res: Response) => {
 // 7. Ações Administrativas de Controle da Partida
 app.post('/api/rooms/:code/action', (req: Request, res: Response) => {
   const code = (req.params.code || '').toUpperCase();
-  const { action, adminPassword, newSettings, targetTeamId, newCaptainId } = req.body;
+  const {
+    action,
+    adminPassword,
+    newSettings,
+    targetTeamId,
+    newCaptainId,
+    targetPlayerId,
+    teamData,
+    playerData,
+    playerName
+  } = req.body;
 
   const room = storage.rooms[code] || getOrCreateDefaultRoom(code);
 
@@ -606,6 +616,106 @@ app.post('/api/rooms/:code/action', (req: Request, res: Response) => {
           team.captainId = newCap.id;
           team.captainName = newCap.name;
           team.players.forEach((p) => (p.isCaptain = p.id === newCap.id));
+        }
+      }
+      break;
+    }
+
+    case 'CREATE_TEAM': {
+      if (teamData && teamData.name) {
+        const newId = `team-${Date.now().toString(36)}`;
+        room.teams[newId] = {
+          id: newId,
+          name: teamData.name.trim(),
+          color: teamData.color || '#10b981',
+          avatar: teamData.avatar || 'tractor',
+          captainId: '',
+          captainName: 'Aguardando Capitão',
+          players: [],
+          currentRoundAnswers: {},
+          roundScores: {},
+          unlockedLots: [],
+          placedPieces: [],
+          puzzleCompleted: false,
+          puzzleCompletedAt: null,
+          totalCorrect: 0,
+          totalAttempts: 0,
+          totalElapsedSeconds: 0
+        };
+      }
+      break;
+    }
+
+    case 'EDIT_TEAM': {
+      if (targetTeamId && room.teams[targetTeamId] && teamData) {
+        const team = room.teams[targetTeamId];
+        if (teamData.name && teamData.name.trim()) team.name = teamData.name.trim();
+        if (teamData.color) team.color = teamData.color;
+        if (teamData.avatar) team.avatar = teamData.avatar;
+      }
+      break;
+    }
+
+    case 'DELETE_TEAM': {
+      if (targetTeamId && room.teams[targetTeamId]) {
+        delete room.teams[targetTeamId];
+      }
+      break;
+    }
+
+    case 'EDIT_PLAYER': {
+      if (targetTeamId && targetPlayerId && room.teams[targetTeamId] && playerData) {
+        const team = room.teams[targetTeamId];
+        const player = team.players.find((p) => p.id === targetPlayerId);
+        if (player && playerData.name && playerData.name.trim()) {
+          player.name = playerData.name.trim();
+          if (player.isCaptain || team.captainId === player.id) {
+            team.captainName = player.name;
+          }
+        }
+      }
+      break;
+    }
+
+    case 'DELETE_PLAYER': {
+      if (targetTeamId && targetPlayerId && room.teams[targetTeamId]) {
+        const team = room.teams[targetTeamId];
+        team.players = team.players.filter((p) => p.id !== targetPlayerId);
+        if (team.captainId === targetPlayerId) {
+          if (team.players.length > 0) {
+            team.captainId = team.players[0].id;
+            team.captainName = team.players[0].name;
+            team.players[0].isCaptain = true;
+          } else {
+            team.captainId = '';
+            team.captainName = 'Aguardando Capitão';
+          }
+        }
+      }
+      break;
+    }
+
+    case 'ADD_PLAYER_TO_TEAM': {
+      if (targetTeamId && room.teams[targetTeamId]) {
+        const nameToUse = (playerName || playerData?.name || '').trim();
+        if (nameToUse) {
+          const team = room.teams[targetTeamId];
+          if (team.players.length < 10) {
+            const newPid = `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            const isCap = team.players.length === 0 || !team.captainId;
+            team.players.push({
+              id: newPid,
+              name: nameToUse,
+              avatar: team.avatar,
+              isCaptain: isCap,
+              isOnline: true,
+              joinedAt: Date.now()
+            });
+            if (isCap) {
+              team.captainId = newPid;
+              team.captainName = nameToUse;
+            }
+          }
         }
       }
       break;

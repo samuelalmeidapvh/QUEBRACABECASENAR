@@ -1,9 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Shield, Play, Pause, RotateCcw, ChevronRight, Settings, Users, BookOpen, Download, Check, AlertCircle, Edit3, X } from 'lucide-react';
-import { RoomState, Question, RoomSettings, Team } from '../types/game';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Shield,
+  Play,
+  Pause,
+  RotateCcw,
+  ChevronRight,
+  Settings,
+  Users,
+  BookOpen,
+  Download,
+  Check,
+  AlertCircle,
+  Edit3,
+  X,
+  Trash2,
+  Edit2,
+  Plus,
+  UserPlus,
+  Crown,
+  Sparkles
+} from 'lucide-react';
+import { RoomState, Question, RoomSettings, Team, Player } from '../types/game';
 import { api } from '../services/api';
 import { SoundSystem } from '../utils/audio';
+
+const AVAILABLE_TEAM_COLORS = [
+  '#10b981', // Verde Esmeralda (SENAR)
+  '#059669', // Verde Floresta
+  '#f59e0b', // Dourado Agro
+  '#3b82f6', // Azul Tecnológico
+  '#8b5cf6', // Roxo Inovação
+  '#ec4899', // Rosa Campo
+  '#14b8a6', // Turquesa
+  '#f97316'  // Laranja Solar
+];
 
 interface AdminPanelProps {
   room: RoomState;
@@ -22,6 +53,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ room, onClose }) => {
   const [filterRound, setFilterRound] = useState<number>(1);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [actionSuccess, setActionSuccess] = useState('');
+
+  // Estados para Gestão Completa de Equipes e Participantes
+  const [showNewTeamModal, setShowNewTeamModal] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamColor, setNewTeamColor] = useState(AVAILABLE_TEAM_COLORS[0]);
+
+  const [editingTeam, setEditingTeam] = useState<{ id: string; name: string; color: string } | null>(null);
+
+  const [addingPlayerToTeamId, setAddingPlayerToTeamId] = useState<string | null>(null);
+  const [newPlayerName, setNewPlayerName] = useState('');
+
+  const [editingPlayer, setEditingPlayer] = useState<{ teamId: string; playerId: string; name: string } | null>(null);
 
   // Carregar banco de questões ao abrir
   useEffect(() => {
@@ -332,67 +375,472 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ room, onClose }) => {
           )}
 
           {activeTab === 'teams' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-emerald-300">
-                Gerenciamento de Equipes e Capitães
-              </h3>
-              <div className="space-y-3">
-                {teams.map((t) => (
-                  <div
-                    key={t.id}
-                    className="p-4 rounded-xl bg-[#092218] border border-emerald-800 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs"
+            <div className="space-y-5">
+              {/* Topo do Menu Equipes */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-900">
+                <div>
+                  <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    Gerenciamento de Equipes e Participantes
+                  </h3>
+                  <p className="text-xs text-emerald-400/70 mt-0.5">
+                    {teams.length} equipes cadastradas · {teams.reduce((acc, t) => acc + t.players.length, 0)} participantes totais
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    SoundSystem.playClick();
+                    setShowNewTeamModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Cadastrar Nova Equipe</span>
+                </button>
+              </div>
+
+              {/* Formulário de Criação de Nova Equipe */}
+              <AnimatePresence>
+                {showNewTeamModal && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-4 rounded-xl bg-black/60 border-2 border-emerald-500/80 shadow-xl overflow-hidden"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3.5 h-3.5 rounded-full"
-                          style={{ backgroundColor: t.color }}
+                    <div className="flex items-center justify-between pb-2 border-b border-emerald-800 mb-3">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Plus className="w-4 h-4 text-emerald-400" />
+                        Cadastrar Nova Equipe
+                      </span>
+                      <button
+                        onClick={() => setShowNewTeamModal(false)}
+                        className="text-emerald-400 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-emerald-300 font-semibold mb-1">
+                          Nome da Equipe:
+                        </label>
+                        <input
+                          type="text"
+                          value={newTeamName}
+                          onChange={(e) => setNewTeamName(e.target.value)}
+                          placeholder="Ex: Equipe AgroFronteira"
+                          className="w-full px-3 py-2 rounded-lg bg-black/50 border border-emerald-700 text-white text-xs focus:ring-1 focus:ring-emerald-400 outline-none"
                         />
-                        <span className="text-sm font-bold text-white">{t.name}</span>
-                        <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 text-[10px]">
-                          {t.players.length} membros
-                        </span>
                       </div>
-                      <p className="text-emerald-400/80 mt-1">
-                        Capitão atual: <strong>{t.captainName}</strong>
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {t.players.map((p) => (
-                          <span
-                            key={p.id}
-                            className={`px-2 py-0.5 rounded text-[10px] ${
-                              p.isCaptain
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold'
-                                : 'bg-black/40 text-emerald-200'
-                            }`}
-                          >
-                            {p.name} {p.isCaptain && '👑'}
-                          </span>
-                        ))}
+
+                      <div>
+                        <label className="block text-emerald-300 font-semibold mb-1">
+                          Cor da Equipe:
+                        </label>
+                        <div className="flex items-center gap-2 pt-1">
+                          {AVAILABLE_TEAM_COLORS.map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setNewTeamColor(c)}
+                              className={`w-6 h-6 rounded-full transition-transform ${
+                                newTeamColor === c
+                                  ? 'scale-125 ring-2 ring-white shadow'
+                                  : 'opacity-70 hover:opacity-100'
+                              }`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Reatribuir Capitão */}
-                    <div className="flex items-center gap-2">
-                      <select
-                        onChange={(e) =>
-                          executeAction('ASSIGN_CAPTAIN', {
-                            targetTeamId: t.id,
-                            newCaptainId: e.target.value
-                          })
-                        }
-                        value={t.captainId}
-                        className="px-2.5 py-1.5 rounded-lg bg-black/60 border border-emerald-700 text-white text-xs"
+                    <div className="mt-4 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowNewTeamModal(false)}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-950 text-emerald-300 text-xs font-semibold hover:bg-emerald-900"
                       >
-                        {t.players.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            Nomear {p.name} Capitão
-                          </option>
-                        ))}
-                      </select>
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!newTeamName.trim()) {
+                            alert('Informe o nome da equipe.');
+                            return;
+                          }
+                          await executeAction('CREATE_TEAM', {
+                            teamData: { name: newTeamName.trim(), color: newTeamColor }
+                          });
+                          setNewTeamName('');
+                          setShowNewTeamModal(false);
+                        }}
+                        className="px-4 py-1.5 rounded-lg bg-emerald-500 text-black text-xs font-bold hover:bg-emerald-400 shadow"
+                      >
+                        Salvar Equipe
+                      </button>
                     </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Lista das Equipes Cadastradas */}
+              <div className="space-y-4">
+                {teams.length === 0 ? (
+                  <div className="py-8 text-center text-emerald-400/60 text-xs">
+                    Nenhuma equipe cadastrada no momento. Clique em "Cadastrar Nova Equipe" acima.
                   </div>
-                ))}
+                ) : (
+                  teams.map((t) => {
+                    const isEditingThisTeam = editingTeam?.id === t.id;
+                    const isAddingPlayer = addingPlayerToTeamId === t.id;
+                    const isFull = t.players.length >= 10;
+
+                    return (
+                      <div
+                        key={t.id}
+                        className="p-4 rounded-xl bg-[#092218] border border-emerald-800/80 shadow-md space-y-3"
+                      >
+                        {/* Linha de Cabeçalho da Equipe */}
+                        {isEditingThisTeam ? (
+                          <div className="p-3 rounded-lg bg-black/50 border border-amber-500/70 space-y-3">
+                            <span className="text-xs font-bold text-amber-300 block">
+                              Alterar Informações da Equipe
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                              <div>
+                                <label className="text-emerald-300 font-semibold block mb-1">
+                                  Nome da Equipe:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editingTeam.name}
+                                  onChange={(e) =>
+                                    setEditingTeam({ ...editingTeam, name: e.target.value })
+                                  }
+                                  className="w-full px-3 py-1.5 rounded bg-black border border-emerald-700 text-white text-xs outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-emerald-300 font-semibold block mb-1">
+                                  Cor:
+                                </label>
+                                <div className="flex gap-2 pt-1">
+                                  {AVAILABLE_TEAM_COLORS.map((c) => (
+                                    <button
+                                      key={c}
+                                      type="button"
+                                      onClick={() =>
+                                        setEditingTeam({ ...editingTeam, color: c })
+                                      }
+                                      className={`w-5 h-5 rounded-full transition-transform ${
+                                        editingTeam.color === c
+                                          ? 'scale-125 ring-2 ring-white'
+                                          : 'opacity-70 hover:opacity-100'
+                                      }`}
+                                      style={{ backgroundColor: c }}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-1">
+                              <button
+                                onClick={() => setEditingTeam(null)}
+                                className="px-3 py-1 rounded bg-emerald-950 text-emerald-300 text-xs font-semibold"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!editingTeam.name.trim()) return;
+                                  await executeAction('EDIT_TEAM', {
+                                    targetTeamId: t.id,
+                                    teamData: {
+                                      name: editingTeam.name.trim(),
+                                      color: editingTeam.color
+                                    }
+                                  });
+                                  setEditingTeam(null);
+                                }}
+                                className="px-3.5 py-1 rounded bg-amber-500 text-black text-xs font-bold hover:bg-amber-400"
+                              >
+                                Salvar Alterações
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-emerald-900/70">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className="w-4 h-4 rounded-full shadow"
+                                style={{ backgroundColor: t.color }}
+                              />
+                              <div>
+                                <span className="text-sm font-extrabold text-white">
+                                  {t.name}
+                                </span>
+                                <span className="ml-2 px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 text-[10px] font-mono font-semibold border border-emerald-800">
+                                  {t.players.length}/10 membros
+                                </span>
+                                {t.captainName && (
+                                  <span className="ml-2 text-[11px] text-amber-300/90 font-medium">
+                                    👑 Capitão: <strong>{t.captainName}</strong>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Botões de Ação da Equipe */}
+                            <div className="flex items-center gap-1.5 self-end sm:self-center">
+                              {/* Botão Adicionar Participante */}
+                              <button
+                                onClick={() => {
+                                  SoundSystem.playClick();
+                                  setAddingPlayerToTeamId(isAddingPlayer ? null : t.id);
+                                  setNewPlayerName('');
+                                }}
+                                disabled={isFull}
+                                title={isFull ? 'Equipe atingiu o limite de 10 participantes' : 'Adicionar Participante'}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
+                                  isFull
+                                    ? 'bg-black/30 text-emerald-700 border-emerald-950 cursor-not-allowed'
+                                    : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border-emerald-700/60'
+                                }`}
+                              >
+                                <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="hidden md:inline">Adicionar Participante</span>
+                              </button>
+
+                              {/* Botão Alterar Equipe */}
+                              <button
+                                onClick={() => {
+                                  SoundSystem.playClick();
+                                  setEditingTeam({ id: t.id, name: t.name, color: t.color });
+                                }}
+                                title="Alterar Nome e Cor da Equipe"
+                                className="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-200 text-xs font-semibold flex items-center gap-1 transition-colors"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-amber-400" />
+                                <span className="hidden md:inline">Alterar</span>
+                              </button>
+
+                              {/* Botão Excluir Equipe */}
+                              <button
+                                onClick={async () => {
+                                  SoundSystem.playClick();
+                                  const confirmMsg = t.players.length > 0
+                                    ? `Tem certeza que deseja excluir a equipe "${t.name}"?\nOs ${t.players.length} participantes e todo o progresso associado serão removidos permanentemente.`
+                                    : `Tem certeza que deseja excluir a equipe "${t.name}"?`;
+                                  if (window.confirm(confirmMsg)) {
+                                    await executeAction('DELETE_TEAM', { targetTeamId: t.id });
+                                  }
+                                }}
+                                title="Excluir Equipe"
+                                className="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-semibold flex items-center gap-1 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                                <span className="hidden md:inline">Excluir</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Formulário Inline de Adição de Participante */}
+                        {isAddingPlayer && (
+                          <div className="p-3 rounded-lg bg-black/40 border border-emerald-600/70 flex flex-col sm:flex-row items-center gap-2">
+                            <input
+                              type="text"
+                              value={newPlayerName}
+                              onChange={(e) => setNewPlayerName(e.target.value)}
+                              placeholder="Nome do novo participante..."
+                              className="flex-1 w-full px-3 py-1.5 rounded bg-black/70 border border-emerald-700 text-white text-xs outline-none focus:ring-1 focus:ring-emerald-400"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (newPlayerName.trim()) {
+                                    executeAction('ADD_PLAYER_TO_TEAM', {
+                                      targetTeamId: t.id,
+                                      playerName: newPlayerName.trim()
+                                    });
+                                    setNewPlayerName('');
+                                    setAddingPlayerToTeamId(null);
+                                  }
+                                }
+                              }}
+                            />
+                            <div className="flex items-center gap-2 self-end sm:self-center">
+                              <button
+                                onClick={() => setAddingPlayerToTeamId(null)}
+                                className="px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 text-xs"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!newPlayerName.trim()) {
+                                    alert('Digite o nome do participante.');
+                                    return;
+                                  }
+                                  await executeAction('ADD_PLAYER_TO_TEAM', {
+                                    targetTeamId: t.id,
+                                    playerName: newPlayerName.trim()
+                                  });
+                                  setNewPlayerName('');
+                                  setAddingPlayerToTeamId(null);
+                                }}
+                                className="px-3 py-1 rounded bg-emerald-500 text-black text-xs font-bold hover:bg-emerald-400 shadow"
+                              >
+                                Confirmar Adição
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Lista de Participantes da Equipe */}
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+                            Participantes ({t.players.length}/10):
+                          </span>
+
+                          {t.players.length === 0 ? (
+                            <div className="text-[11px] text-emerald-400/60 italic py-1">
+                              Nenhum participante vinculado a esta equipe ainda. Clique em "Adicionar Participante".
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {t.players.map((p) => {
+                                const isEditingPlayer =
+                                  editingPlayer?.teamId === t.id && editingPlayer?.playerId === p.id;
+
+                                return (
+                                  <div
+                                    key={p.id}
+                                    className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 text-xs transition-colors ${
+                                      p.isCaptain
+                                        ? 'bg-amber-950/30 border-amber-600/50'
+                                        : 'bg-black/30 border-emerald-900/80 hover:border-emerald-800'
+                                    }`}
+                                  >
+                                    {isEditingPlayer ? (
+                                      <div className="flex items-center gap-1.5 w-full">
+                                        <input
+                                          type="text"
+                                          value={editingPlayer.name}
+                                          onChange={(e) =>
+                                            setEditingPlayer({
+                                              ...editingPlayer,
+                                              name: e.target.value
+                                            })
+                                          }
+                                          className="flex-1 px-2 py-1 rounded bg-black border border-amber-400 text-white text-xs outline-none"
+                                        />
+                                        <button
+                                          onClick={async () => {
+                                            if (!editingPlayer.name.trim()) return;
+                                            await executeAction('EDIT_PLAYER', {
+                                              targetTeamId: t.id,
+                                              targetPlayerId: p.id,
+                                              playerData: { name: editingPlayer.name.trim() }
+                                            });
+                                            setEditingPlayer(null);
+                                          }}
+                                          title="Salvar Nome"
+                                          className="p-1 rounded bg-emerald-600 hover:bg-emerald-500 text-black font-bold"
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingPlayer(null)}
+                                          title="Cancelar"
+                                          className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-white"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="flex items-center gap-1.5 truncate">
+                                          <span className="font-semibold text-white truncate">
+                                            {p.name}
+                                          </span>
+                                          {p.isCaptain && (
+                                            <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[10px] border border-amber-500/40 shrink-0">
+                                              👑 Capitão
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          {/* Tornar Capitão (se não for) */}
+                                          {!p.isCaptain && (
+                                            <button
+                                              onClick={() =>
+                                                executeAction('ASSIGN_CAPTAIN', {
+                                                  targetTeamId: t.id,
+                                                  newCaptainId: p.id
+                                                })
+                                              }
+                                              title="Tornar este participante o Capitão da equipe"
+                                              className="p-1 rounded bg-emerald-950 hover:bg-amber-950 border border-emerald-800 hover:border-amber-600 text-amber-300 text-[10px] font-bold"
+                                            >
+                                              <Crown className="w-3 h-3" />
+                                            </button>
+                                          )}
+
+                                          {/* Alterar Participante */}
+                                          <button
+                                            onClick={() => {
+                                              SoundSystem.playClick();
+                                              setEditingPlayer({
+                                                teamId: t.id,
+                                                playerId: p.id,
+                                                name: p.name
+                                              });
+                                            }}
+                                            title="Alterar Nome do Participante"
+                                            className="p-1 rounded bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300"
+                                          >
+                                            <Edit2 className="w-3 h-3 text-amber-400" />
+                                          </button>
+
+                                          {/* Excluir Participante */}
+                                          <button
+                                            onClick={async () => {
+                                              SoundSystem.playClick();
+                                              if (
+                                                window.confirm(
+                                                  `Tem certeza que deseja excluir o participante "${p.name}" da equipe "${t.name}"?`
+                                                )
+                                              ) {
+                                                await executeAction('DELETE_PLAYER', {
+                                                  targetTeamId: t.id,
+                                                  targetPlayerId: p.id
+                                                });
+                                              }
+                                            }}
+                                            title="Excluir Participante da Equipe"
+                                            className="p-1 rounded bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300"
+                                          >
+                                            <Trash2 className="w-3 h-3 text-rose-400" />
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
