@@ -480,6 +480,7 @@ app.post('/api/rooms/:code/action', (req: Request, res: Response) => {
     adminPassword,
     newSettings,
     targetTeamId,
+    newTeamId,
     newCaptainId,
     targetPlayerId,
     teamData,
@@ -700,6 +701,34 @@ app.post('/api/rooms/:code/action', (req: Request, res: Response) => {
           } else {
             team.captainId = '';
             team.captainName = 'Aguardando Capitão';
+          }
+        }
+      }
+      break;
+    }
+
+    case 'TRANSFER_PLAYER': {
+      if (targetTeamId && newTeamId && targetPlayerId && room.teams[targetTeamId] && room.teams[newTeamId]) {
+        const fromTeam = room.teams[targetTeamId];
+        const toTeam = room.teams[newTeamId];
+        const pIndex = fromTeam.players.findIndex((p) => p.id === targetPlayerId);
+        if (pIndex !== -1 && toTeam.players.length < 10) {
+          const [player] = fromTeam.players.splice(pIndex, 1);
+          player.isCaptain = toTeam.players.length === 0;
+          toTeam.players.push(player);
+          if (player.isCaptain) {
+            toTeam.captainId = player.id;
+            toTeam.captainName = player.name;
+          }
+          if (fromTeam.captainId === targetPlayerId) {
+            if (fromTeam.players.length > 0) {
+              fromTeam.captainId = fromTeam.players[0].id;
+              fromTeam.captainName = fromTeam.players[0].name;
+              fromTeam.players[0].isCaptain = true;
+            } else {
+              fromTeam.captainId = '';
+              fromTeam.captainName = 'Aguardando Capitão';
+            }
           }
         }
       }

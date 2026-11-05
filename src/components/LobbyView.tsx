@@ -269,9 +269,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               </div>
 
               {isCreatingTeam ? (
-                <div className="space-y-3 pt-1">
+                <div className="space-y-3 pt-2 p-3.5 rounded-xl bg-black/40 border border-emerald-800/70">
                   <div>
-                    <label className="block text-xs font-semibold text-emerald-300 mb-1">
+                    <label className="block text-xs font-bold text-emerald-300 uppercase tracking-wider mb-1">
                       Nome da Nova Equipe:
                     </label>
                     <input
@@ -279,15 +279,15 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                       value={newTeamName}
                       onChange={(e) => setNewTeamName(e.target.value)}
                       placeholder="Ex: Equipe AgroInovação"
-                      className="w-full px-4 py-2 rounded-xl bg-black/50 border border-emerald-700 text-white text-sm"
+                      className="w-full px-3.5 py-2 rounded-xl bg-black/60 border border-emerald-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-emerald-300 mb-1.5">
-                      Cor da Equipe:
+                    <label className="block text-xs font-bold text-emerald-300 uppercase tracking-wider mb-1.5">
+                      Cor Institucional da Equipe:
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 pt-0.5">
                       {AVAILABLE_COLORS.map((color) => (
                         <button
                           key={color}
@@ -296,7 +296,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                           className={`w-7 h-7 rounded-full transition-transform ${
                             selectedColor === color
                               ? 'scale-125 ring-2 ring-white shadow-lg'
-                              : 'opacity-70 hover:opacity-100'
+                              : 'opacity-70 hover:opacity-100 hover:scale-110'
                           }`}
                           style={{ backgroundColor: color }}
                         />
@@ -305,11 +305,17 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                   </div>
                 </div>
               ) : (
-                <div>
-                  <label className="block text-xs font-semibold text-emerald-300 mb-1.5">
-                    Selecione sua Equipe:
-                  </label>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2 p-3 rounded-xl bg-black/30 border border-emerald-800/60 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                      Selecione sua Equipe:
+                    </label>
+                    <span className="text-[11px] text-emerald-400/80 font-mono">
+                      {teams.length} {teams.length === 1 ? 'equipe' : 'equipes'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                     {teams.map((t) => {
                       const isFull = t.players.length >= 10;
                       const isSelected = selectedTeamId === t.id;
@@ -320,30 +326,36 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                           onClick={() => !isFull && setSelectedTeamId(t.id)}
                           className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                             isSelected
-                              ? 'bg-emerald-950 border-emerald-400 text-white shadow'
-                              : 'bg-black/30 border-emerald-900/80 text-emerald-200 hover:border-emerald-700'
+                              ? 'bg-gradient-to-r from-emerald-950 to-[#0a2f20] border-emerald-400 text-white shadow-lg ring-1 ring-emerald-400/40'
+                              : 'bg-black/40 border-emerald-900/80 text-emerald-200 hover:border-emerald-700 hover:bg-black/60'
                           } ${isFull ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-3">
                             <div
-                              className="w-3.5 h-3.5 rounded-full"
+                              className="w-4 h-4 rounded-full shadow-sm shrink-0"
                               style={{ backgroundColor: t.color }}
                             />
                             <div>
-                              <span className="font-bold text-xs block">{t.name}</span>
-                              <span className="text-[11px] text-emerald-400/70">
-                                Capitão: {t.captainName}
+                              <span className="font-extrabold text-xs block text-white">
+                                {t.name}
+                              </span>
+                              <span className="text-[11px] text-emerald-300/80 flex items-center gap-1 mt-0.5">
+                                👑 Capitão: <strong className="text-white">{t.captainName || 'A definir'}</strong>
                               </span>
                             </div>
                           </div>
 
-                          <div className="text-right">
-                            <span className="text-xs font-mono font-bold">
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-black/50 border border-emerald-900 text-emerald-300">
                               {t.players.length}/10
                             </span>
-                            {isFull && (
-                              <span className="block text-[10px] text-rose-400 font-bold">
+                            {isFull ? (
+                              <span className="block text-[10px] text-rose-400 font-extrabold mt-1">
                                 LOTADA
+                              </span>
+                            ) : (
+                              <span className="block text-[10px] text-emerald-400/70 mt-0.5">
+                                {10 - t.players.length} vagas
                               </span>
                             )}
                           </div>
@@ -351,6 +363,20 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                       );
                     })}
                   </div>
+
+                  {isAdmin && (
+                    <div className="pt-2 border-t border-emerald-900/70 flex items-center justify-between text-[11px]">
+                      <span className="text-emerald-400/70">Gerenciamento administrativo:</span>
+                      <button
+                        type="button"
+                        onClick={onOpenAdmin}
+                        className="text-amber-400 hover:text-amber-300 font-semibold underline underline-offset-2 flex items-center gap-1"
+                      >
+                        <Shield className="w-3 h-3" />
+                        Alterar ou excluir equipes
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
